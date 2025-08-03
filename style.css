@@ -1388,7 +1388,7 @@ footer {
 .logos {
     height: 80px;
     width: 100%;
-    display: flex
+    display: flex;
 }
 
 .two-words article {
@@ -1410,7 +1410,7 @@ footer {
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    padding: 8px;
+    padding: 6px;
     border-radius: 50%;
     border: 2px solid #e2dede;
     position: relative;
