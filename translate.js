@@ -88,7 +88,7 @@
   function injectCSS() {
     var css = [
       // Sembunyikan bar & tooltip bawaan Google
-      '.goog-te-banner-frame, .goog-te-banner-frame.skiptranslate, iframe.skiptranslate, .VIpgJd-ZVi9od-ORHb-OEVmcd{display:none!important}',
+      '.goog-te-banner-frame, .goog-te-banner-frame.skiptranslate, iframe.skiptranslate, .VIpgJd-ZVi9od-ORHb-OEVmcd{visibility:hidden!important;height:0!important;min-height:0!important;border:0!important}',
       'body{top:0!important}',
       '#goog-gt-tt, .goog-tooltip, .goog-tooltip:hover{display:none!important}',
       '.goog-text-highlight{background:none!important;box-shadow:none!important}',
@@ -160,16 +160,43 @@
     if (panel) panel.classList.remove('open');
   }
 
-  function bindTrigger(el) {
-    el.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (panel.classList.contains('open')) {
-        closePanel();
-      } else {
-        openPanel(el);
+  var openedAt = 0;
+  var openedScrollY = 0;
+
+  // Delegasi klik di fase capture: berjalan lebih dulu daripada handler
+  // lain (mis. smooth-scroll atau tutup-menu di main.js) sehingga tidak
+  // bisa membatalkan pembukaan panel.
+  function bindGlobalClicks() {
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('[data-lang-toggle]') : null;
+
+      if (t) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        console.log('[translate] tombol bahasa diklik');
+        if (panel.classList.contains('open')) {
+          closePanel();
+        } else {
+          openPanel(t);
+          openedAt = Date.now();
+          openedScrollY = window.pageYOffset || 0;
+        }
+        return;
       }
-    });
+
+      // klik di dalam panel dibiarkan (ditangani tombol bahasa)
+      if (panel.contains(e.target)) return;
+
+      closePanel();
+    }, true);
+
+    // tutup saat scroll sungguhan, bukan scroll otomatis sesaat setelah dibuka
+    window.addEventListener('scroll', function () {
+      if (!panel.classList.contains('open')) return;
+      var moved = Math.abs((window.pageYOffset || 0) - openedScrollY);
+      if (Date.now() - openedAt > 500 && moved > 40) closePanel();
+    }, { passive: true });
   }
 
   function setupTriggers() {
@@ -193,11 +220,9 @@
     Array.prototype.forEach.call(triggers, function (t) {
       var label = t.querySelector('.lang-code');
       if (label) label.textContent = code;
-      bindTrigger(t);
     });
 
-    document.addEventListener('click', closePanel);
-    window.addEventListener('scroll', closePanel, { passive: true });
+    bindGlobalClicks();
     window.addEventListener('resize', closePanel);
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closePanel();
@@ -229,6 +254,17 @@
     var s = document.createElement('script');
     s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
     s.async = true;
+    s.onload = function () {
+      console.log('[translate] script Google Translate berhasil dimuat');
+      setTimeout(function () {
+        if (!document.querySelector('.goog-te-combo')) {
+          console.warn('[translate] widget Google belum terbentuk (kemungkinan diblokir ekstensi/jaringan)');
+        }
+      }, 2500);
+    };
+    s.onerror = function () {
+      console.error('[translate] GAGAL memuat translate.google.com — kemungkinan diblokir adblock, DNS, atau jaringan');
+    };
     document.head.appendChild(s);
   }
 
@@ -239,6 +275,9 @@
     protectSections();
     buildPanel();
     setupTriggers();
+    console.log('[translate] siap. tombol ditemukan: ' +
+      document.querySelectorAll('[data-lang-toggle]').length +
+      ', bahasa aktif: ' + getCurrent());
     if (getCurrent() !== SOURCE) {
       document.documentElement.setAttribute('lang', getCurrent());
       loadGoogle();
