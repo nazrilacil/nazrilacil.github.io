@@ -12,21 +12,28 @@
   var SOURCE = 'en'; // bahasa asli konten
 
   var LANGS = [
-    { code: 'en', name: 'English (asli)' },
-    { code: 'id', name: 'Indonesia' },
-    { code: 'jw', name: 'Basa Jawa' },
-    { code: 'su', name: 'Basa Sunda' },
-    { code: 'ms', name: 'Melayu' },
-    { code: 'ar', name: 'العربية' },
-    { code: 'ja', name: '日本語' },
-    { code: 'ko', name: '한국어' },
-    { code: 'zh-CN', name: '中文' },
-    { code: 'es', name: 'Español' },
-    { code: 'fr', name: 'Français' },
-    { code: 'de', name: 'Deutsch' }
+    { code: 'en', flag: '🇬🇧', name: 'English (asli)' },
+    { code: 'id', flag: '🇮🇩', name: 'Indonesia' },
+    { code: 'jw', flag: '🇮🇩', name: 'Basa Jawa' },
+    { code: 'su', flag: '🇮🇩', name: 'Basa Sunda' },
+    { code: 'ms', flag: '🇲🇾', name: 'Melayu' },
+    { code: 'ar', flag: '🇸🇦', name: 'العربية' },
+    { code: 'ja', flag: '🇯🇵', name: '日本語' },
+    { code: 'ko', flag: '🇰🇷', name: '한국어' },
+    { code: 'zh-CN', flag: '🇨🇳', name: '中文' },
+    { code: 'es', flag: '🇪🇸', name: 'Español' },
+    { code: 'fr', flag: '🇫🇷', name: 'Français' },
+    { code: 'de', flag: '🇩🇪', name: 'Deutsch' }
   ];
 
   var STORAGE_KEY = 'acil_translate_visited';
+
+  function flagOf(code) {
+    for (var i = 0; i < LANGS.length; i++) {
+      if (LANGS[i].code === code) return LANGS[i].flag;
+    }
+    return LANGS[0].flag;
+  }
   var panel = null;
 
   /* ---------- Cookie ---------- */
@@ -96,7 +103,7 @@
 
       // Tombol pemicu
       '[data-lang-toggle]{cursor:pointer;user-select:none}',
-      '.lang-icon{width:1.1em!important;height:1.1em!important;vertical-align:-0.2em;margin-right:4px;fill:none!important;stroke:currentColor!important;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
+      '.lang-flag{display:inline-block;margin-right:4px;font-size:1.1em;line-height:1;vertical-align:-0.1em;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}',
       '.lang-li{list-style:none}',
 
       // Panel pilihan bahasa (popover)
@@ -126,7 +133,7 @@
     LANGS.forEach(function (l) {
       var item = document.createElement('button');
       item.type = 'button';
-      item.textContent = l.name;
+      item.textContent = l.flag + '  ' + l.name;
       if (l.code === current) item.className = 'active';
       item.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -212,7 +219,7 @@
       f.setAttribute('translate', 'no');
       f.setAttribute('data-lang-toggle', '');
       f.setAttribute('aria-label', 'Pilih bahasa / Choose language');
-      f.innerHTML = '<svg class="lang-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> <span class="lang-code"></span>';
+      f.innerHTML = '<span class="lang-flag"></span> <span class="lang-code"></span>';
       document.body.appendChild(f);
       triggers = document.querySelectorAll('[data-lang-toggle]');
     }
@@ -221,6 +228,8 @@
     Array.prototype.forEach.call(triggers, function (t) {
       var label = t.querySelector('.lang-code');
       if (label) label.textContent = code;
+      var fl = t.querySelector('.lang-flag');
+      if (fl) fl.textContent = flagOf(getCurrent());
     });
 
     bindGlobalClicks();
