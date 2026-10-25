@@ -12,27 +12,32 @@
   var SOURCE = 'en'; // bahasa asli konten
 
   var LANGS = [
-    { code: 'en', flag: '🇬🇧', name: 'English (asli)' },
-    { code: 'id', flag: '🇮🇩', name: 'Indonesia' },
-    { code: 'jw', flag: '🇮🇩', name: 'Basa Jawa' },
-    { code: 'su', flag: '🇮🇩', name: 'Basa Sunda' },
-    { code: 'ms', flag: '🇲🇾', name: 'Melayu' },
-    { code: 'ar', flag: '🇸🇦', name: 'العربية' },
-    { code: 'ja', flag: '🇯🇵', name: '日本語' },
-    { code: 'ko', flag: '🇰🇷', name: '한국어' },
-    { code: 'zh-CN', flag: '🇨🇳', name: '中文' },
-    { code: 'es', flag: '🇪🇸', name: 'Español' },
-    { code: 'fr', flag: '🇫🇷', name: 'Français' },
-    { code: 'de', flag: '🇩🇪', name: 'Deutsch' }
+    { code: 'en', cc: 'gb', name: 'English (asli)' },
+    { code: 'id', cc: 'id', name: 'Indonesia' },
+    { code: 'jw', cc: 'id', name: 'Basa Jawa' },
+    { code: 'su', cc: 'id', name: 'Basa Sunda' },
+    { code: 'ms', cc: 'my', name: 'Melayu' },
+    { code: 'ar', cc: 'sa', name: 'العربية' },
+    { code: 'ja', cc: 'jp', name: '日本語' },
+    { code: 'ko', cc: 'kr', name: '한국어' },
+    { code: 'zh-CN', cc: 'cn', name: '中文' },
+    { code: 'es', cc: 'es', name: 'Español' },
+    { code: 'fr', cc: 'fr', name: 'Français' },
+    { code: 'de', cc: 'de', name: 'Deutsch' }
   ];
 
   var STORAGE_KEY = 'acil_translate_visited';
 
-  function flagOf(code) {
+  // Bendera dimuat sebagai gambar (flagcdn.com) agar tampil sama di semua perangkat,
+  // termasuk Windows yang tidak punya emoji bendera.
+  function flagHTML(code) {
+    var c = LANGS[0].cc;
     for (var i = 0; i < LANGS.length; i++) {
-      if (LANGS[i].code === code) return LANGS[i].flag;
+      if (LANGS[i].code === code) c = LANGS[i].cc;
     }
-    return LANGS[0].flag;
+    return '<img src="https://flagcdn.com/w40/' + c + '.png" ' +
+           'srcset="https://flagcdn.com/w80/' + c + '.png 2x" ' +
+           'width="20" height="15" alt="" draggable="false">';
   }
   var panel = null;
 
@@ -103,7 +108,9 @@
 
       // Tombol pemicu
       '[data-lang-toggle]{cursor:pointer;user-select:none}',
-      '.lang-flag{display:inline-block;margin-right:4px;font-size:1.1em;line-height:1;vertical-align:-0.1em;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}',
+      '.lang-flag{display:inline-block;margin-right:6px;line-height:1;vertical-align:-0.15em}',
+      '.lang-flag img{width:1.3em!important;height:auto!important;display:inline-block;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.25);filter:none!important}',
+      '#acil-tr-panel button img{width:20px!important;height:auto!important;margin-right:10px;vertical-align:middle;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.2);filter:none!important}',
       '.lang-li{list-style:none}',
 
       // Panel pilihan bahasa (popover)
@@ -133,7 +140,8 @@
     LANGS.forEach(function (l) {
       var item = document.createElement('button');
       item.type = 'button';
-      item.textContent = l.flag + '  ' + l.name;
+      item.innerHTML = flagHTML(l.code) + '<span></span>';
+      item.lastChild.textContent = l.name;
       if (l.code === current) item.className = 'active';
       item.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -229,7 +237,7 @@
       var label = t.querySelector('.lang-code');
       if (label) label.textContent = code;
       var fl = t.querySelector('.lang-flag');
-      if (fl) fl.textContent = flagOf(getCurrent());
+      if (fl) fl.innerHTML = flagHTML(getCurrent());
     });
 
     bindGlobalClicks();
