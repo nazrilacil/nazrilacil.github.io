@@ -1,15 +1,16 @@
 /*!
- * translate.js — Fitur translate otomatis untuk website portfolio
- * Memakai mesin Google Translate, dengan tampilan tombol sendiri.
- * Cara pakai: tambahkan  <script src="translate.js" defer></script>  di index.html
+ * translate.js v2 — Fitur translate otomatis untuk website portfolio
+ * Memakai mesin Google Translate dengan tombol bahasa kustom.
+ *
+ * Tombol dipasang lewat atribut  data-lang-toggle  pada elemen apa pun
+ * (contoh: link di navbar & menu mobile). Kalau tidak ada elemen
+ * tersebut, skrip otomatis membuat tombol 🌐 melayang di kiri bawah.
  */
 (function () {
   'use strict';
 
-  // Bahasa asli konten website (mayoritas teks di halaman berbahasa Inggris)
-  var SOURCE = 'en';
+  var SOURCE = 'en'; // bahasa asli konten
 
-  // Daftar bahasa. Kode mengikuti Google Translate.
   var LANGS = [
     { code: 'en', name: 'English (asli)' },
     { code: 'id', name: 'Indonesia' },
@@ -26,8 +27,9 @@
   ];
 
   var STORAGE_KEY = 'acil_translate_visited';
+  var panel = null;
 
-  /* ---------- Cookie helper ---------- */
+  /* ---------- Cookie ---------- */
   function getCurrent() {
     var m = document.cookie.match(/(?:^|;\s*)googtrans=([^;]+)/);
     if (!m) return SOURCE;
@@ -65,18 +67,18 @@
   }
 
   function autoDetect() {
-    var canStore = false;
+    var firstVisit = false;
     try {
       if (!localStorage.getItem(STORAGE_KEY)) {
         localStorage.setItem(STORAGE_KEY, '1');
-        canStore = true;
+        firstVisit = true;
       }
     } catch (e) {}
-    if (!canStore) return false;
+    if (!firstVisit) return false;
 
     var target = browserLang();
     if (target !== SOURCE && getCurrent() === SOURCE) {
-      setLang(target); // reload sekali, lalu tidak diulang
+      setLang(target);
       return true;
     }
     return false;
@@ -92,53 +94,43 @@
       '.goog-text-highlight{background:none!important;box-shadow:none!important}',
       '#google_translate_element{position:absolute;left:-9999px;top:0;height:0;overflow:hidden}',
 
-      // Tombol & panel kustom
-      '#acil-tr{position:fixed;left:20px;bottom:20px;z-index:99999;font-family:"Fira Code",system-ui,sans-serif}',
-      '#acil-tr button{font:inherit;cursor:pointer}',
-      '#acil-tr-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(20,20,20,.85);color:#fff;backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.35);font-size:13px}',
-      '#acil-tr-btn:hover{border-color:#794bc4}',
-      '#acil-tr-panel{position:absolute;left:0;bottom:calc(100% + 10px);width:200px;max-height:60vh;overflow-y:auto;padding:6px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(20,20,20,.95);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.45);display:none}',
-      '#acil-tr.open #acil-tr-panel{display:block}',
-      '#acil-tr-panel button{display:block;width:100%;text-align:left;padding:9px 12px;border:0;border-radius:9px;background:transparent;color:#fff;font-size:13px}',
+      // Tombol pemicu
+      '[data-lang-toggle]{cursor:pointer;user-select:none}',
+      '.lang-li{list-style:none}',
+
+      // Panel pilihan bahasa (popover)
+      '#acil-tr-panel{position:fixed;z-index:2147483000;width:210px;max-height:60vh;overflow-y:auto;padding:6px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(20,20,20,.96);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.45);display:none;font-family:"Fira Code",system-ui,sans-serif}',
+      '#acil-tr-panel.open{display:block}',
+      '#acil-tr-panel button{display:block;width:100%;text-align:left;padding:9px 12px;border:0;border-radius:9px;background:transparent;color:#fff;font:inherit;font-size:13px;cursor:pointer}',
       '#acil-tr-panel button:hover{background:rgba(121,75,196,.35)}',
       '#acil-tr-panel button.active{background:#794bc4}',
-      '@media (max-width:600px){#acil-tr{left:12px;bottom:12px}}'
+
+      // Tombol melayang (hanya dipakai bila tidak ada data-lang-toggle)
+      '#acil-tr-float{position:fixed;left:20px;bottom:20px;z-index:99999;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(20,20,20,.85);color:#fff;font:inherit;font-size:13px;cursor:pointer;backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.35)}',
+      '@media (max-width:600px){#acil-tr-float{left:12px;bottom:12px}}'
     ].join('\n');
     var style = document.createElement('style');
     style.textContent = css;
     document.head.appendChild(style);
   }
 
-  /* ---------- UI ---------- */
-  function buildUI() {
+  /* ---------- Panel bahasa ---------- */
+  function buildPanel() {
     var current = getCurrent();
-    var currentName = SOURCE;
-    LANGS.forEach(function (l) {
-      if (l.code === current) currentName = l.code.toUpperCase();
-    });
-
-    var wrap = document.createElement('div');
-    wrap.id = 'acil-tr';
-    wrap.className = 'notranslate';
-    wrap.setAttribute('translate', 'no');
-
-    var btn = document.createElement('button');
-    btn.id = 'acil-tr-btn';
-    btn.type = 'button';
-    btn.setAttribute('aria-label', 'Pilih bahasa / Choose language');
-    btn.textContent = '\uD83C\uDF10 ' + currentName;
-
-    var panel = document.createElement('div');
+    panel = document.createElement('div');
     panel.id = 'acil-tr-panel';
+    panel.className = 'notranslate';
+    panel.setAttribute('translate', 'no');
 
     LANGS.forEach(function (l) {
       var item = document.createElement('button');
       item.type = 'button';
       item.textContent = l.name;
       if (l.code === current) item.className = 'active';
-      item.addEventListener('click', function () {
+      item.addEventListener('click', function (e) {
+        e.stopPropagation();
         if (l.code === current) {
-          wrap.classList.remove('open');
+          closePanel();
           return;
         }
         setLang(l.code);
@@ -146,28 +138,75 @@
       panel.appendChild(item);
     });
 
-    btn.addEventListener('click', function (e) {
+    document.body.appendChild(panel);
+  }
+
+  function openPanel(trigger) {
+    var r = trigger.getBoundingClientRect();
+    var w = 210;
+    panel.classList.add('open');
+
+    var left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
+    var top = r.bottom + 8;
+    var h = panel.offsetHeight;
+    if (top + h > window.innerHeight - 8) {
+      top = Math.max(8, r.top - h - 8); // buka ke atas bila tidak muat di bawah
+    }
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+  }
+
+  function closePanel() {
+    if (panel) panel.classList.remove('open');
+  }
+
+  function bindTrigger(el) {
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
       e.stopPropagation();
-      wrap.classList.toggle('open');
+      if (panel.classList.contains('open')) {
+        closePanel();
+      } else {
+        openPanel(el);
+      }
     });
-    document.addEventListener('click', function () {
-      wrap.classList.remove('open');
+  }
+
+  function setupTriggers() {
+    var triggers = document.querySelectorAll('[data-lang-toggle]');
+
+    // Cadangan: bila tidak ada tombol di HTML, buat tombol melayang
+    if (!triggers.length) {
+      var f = document.createElement('button');
+      f.id = 'acil-tr-float';
+      f.type = 'button';
+      f.className = 'notranslate';
+      f.setAttribute('translate', 'no');
+      f.setAttribute('data-lang-toggle', '');
+      f.setAttribute('aria-label', 'Pilih bahasa / Choose language');
+      f.innerHTML = '\uD83C\uDF10 <span class="lang-code"></span>';
+      document.body.appendChild(f);
+      triggers = document.querySelectorAll('[data-lang-toggle]');
+    }
+
+    var code = getCurrent().toUpperCase().replace('ZH-CN', 'ZH');
+    Array.prototype.forEach.call(triggers, function (t) {
+      var label = t.querySelector('.lang-code');
+      if (label) label.textContent = code;
+      bindTrigger(t);
     });
 
-    wrap.appendChild(panel);
-    wrap.appendChild(btn);
-    document.body.appendChild(wrap);
-
-    // Container yang dibutuhkan Google Translate
-    var holder = document.createElement('div');
-    holder.id = 'google_translate_element';
-    document.body.appendChild(holder);
+    document.addEventListener('click', closePanel);
+    window.addEventListener('scroll', closePanel, { passive: true });
+    window.addEventListener('resize', closePanel);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closePanel();
+    });
   }
 
   /* ---------- Jangan terjemahkan bagian tertentu ---------- */
   function protectSections() {
-    // Teks animasi huruf-per-huruf & menu tab (agar tidak rusak)
-    var sel = '#hello-friend, #name, #work, .navbar-tabs, .mobile-navbar-tabs-ul, .footer-bottom, .tooltip';
+    var sel = '#hello-friend, #name, #work, .navbar-tabs, .mobile-navbar-tabs-ul, .footer-bottom, .tooltip, .lang-li';
     document.querySelectorAll(sel).forEach(function (el) {
       el.classList.add('notranslate');
       el.setAttribute('translate', 'no');
@@ -176,6 +215,10 @@
 
   /* ---------- Muat Google Translate (hanya jika perlu) ---------- */
   function loadGoogle() {
+    var holder = document.createElement('div');
+    holder.id = 'google_translate_element';
+    document.body.appendChild(holder);
+
     var codes = LANGS.map(function (l) { return l.code; }).join(',');
     window.googleTranslateElementInit = function () {
       new google.translate.TranslateElement(
@@ -194,7 +237,8 @@
     if (autoDetect()) return;
     injectCSS();
     protectSections();
-    buildUI();
+    buildPanel();
+    setupTriggers();
     if (getCurrent() !== SOURCE) {
       document.documentElement.setAttribute('lang', getCurrent());
       loadGoogle();
