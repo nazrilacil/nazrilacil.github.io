@@ -96,6 +96,7 @@
 
       // Tombol pemicu
       '[data-lang-toggle]{cursor:pointer;user-select:none}',
+      '.lang-icon{width:1.1em!important;height:1.1em!important;vertical-align:-0.2em;margin-right:4px;fill:none!important;stroke:currentColor!important;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
       '.lang-li{list-style:none}',
 
       // Panel pilihan bahasa (popover)
@@ -211,7 +212,7 @@
       f.setAttribute('translate', 'no');
       f.setAttribute('data-lang-toggle', '');
       f.setAttribute('aria-label', 'Pilih bahasa / Choose language');
-      f.innerHTML = '\uD83C\uDF10 <span class="lang-code"></span>';
+      f.innerHTML = '<svg class="lang-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> <span class="lang-code"></span>';
       document.body.appendChild(f);
       triggers = document.querySelectorAll('[data-lang-toggle]');
     }
