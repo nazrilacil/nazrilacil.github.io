@@ -12,7 +12,7 @@
   var SOURCE = 'en'; // bahasa asli konten
 
   var LANGS = [
-    { code: 'en', cc: 'gb', name: 'English (asli)' },
+    { code: 'en', cc: 'gb', name: 'English' },
     { code: 'id', cc: 'id', name: 'Indonesia' },
     { code: 'jw', cc: 'id', name: 'Basa Jawa' },
     { code: 'su', cc: 'id', name: 'Basa Sunda' },
